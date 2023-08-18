@@ -2,6 +2,7 @@ const arg = require("arg");
 const log = require("./util/log");
 const commands = require("./commands");
 const rootArgs = require("./util/args");
+const help = require("./util/help");
 
 const main = async () => {
 	log.trace("Init.");
@@ -11,12 +12,12 @@ const main = async () => {
 	});
 
 	if (args["--help"] && args._.length === 0) {
-		// @TODO(jakehamilton): Print root help message.
+		help();
 		process.exit(0);
 	}
 
 	if (args._.length === 0) {
-		// @TODO(jakehamilton): Show error and print help message.
+		help();
 		process.exit(1);
 	}
 

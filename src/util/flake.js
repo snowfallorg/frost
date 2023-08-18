@@ -1,6 +1,6 @@
 const fs = require("fs/promises");
 const path = require("path");
-const log = require("../../util/log");
+const log = require("./log");
 const {
 	getFlakeOutputs,
 	getFlakeLibMembers,
@@ -12,15 +12,15 @@ const {
 	getFlakeModuleOptions,
 	getFlakeApps,
 	getFlakeModules,
-} = require("../../util/nix");
-const getArgs = require("./args");
-const help = require("./help");
-const { parseFile, traverse } = require("../../util/parser");
+} = require("./nix");
+const { parseFile, traverse } = require("./parser");
 const { NodeKind, isAttrBinding } = require("@snowfallorg/sleet");
 const { mkdirp } = require("mkdirp");
-const { readDirRecursive, resolvePath, clearCollection, write } = require("../../util/fs");
+const { readDirRecursive, resolvePath, clearCollection, write } = require("./fs");
 
-const getLib = async (flake, asts = new Map()) => {
+const getLib = async (flake, config, asts = new Map()) => {
+	const isFlakeUriPath = flake.startsWith(".") || flake.startsWith("/");
+
 	const allLibMembers = await getFlakeLibMembers(flake);
 	const libMembersWithLocation = allLibMembers.filter((member) => member.location !== null);
 	const libMembersWithoutLocation = allLibMembers.filter((member) => member.location === null);
@@ -147,6 +147,70 @@ const getLib = async (flake, asts = new Map()) => {
 	return lib;
 };
 
+const getPackages = async (flake) => {
+	const packages = new Map();
+
+	for (const package of await getFlakePackages(flake)) {
+		if (!packages.has(package.name)) {
+			packages.set(package.name, {
+				systems: [],
+				available: package.meta?.available ?? true,
+				broken: package.meta?.broken ?? false,
+				insecure: package.meta?.insecure ?? false,
+				unfree: package.meta?.unfree ?? false,
+				unsupported: package.meta?.unsupported ?? false,
+				outputs: package.meta?.outputsToInstall ?? [],
+				description: package.meta?.description ?? null,
+				longDescription: package.meta?.longDescription ?? null,
+				license: package.meta?.license ?? null,
+				homepage: package.meta?.homepage ?? null,
+				maintainers: package.meta?.maintainers ?? [],
+				snowfall: package.meta.snowfall ?? {},
+				position:
+					package.meta?.position && !package.meta.position.includes("/pkgs/build-support/trivial-builders/")
+						? package.meta?.position
+						: null,
+			});
+		}
+
+		const pkg = packages.get(package.name);
+		pkg.systems.push(package.system);
+	}
+
+	return packages;
+};
+
+const getOptions = async (flake) => {
+	const isFlakeUriPath = flake.startsWith(".") || flake.startsWith("/");
+
+	const options = await getFlakeModuleOptions(flake, {
+		channelName: isFlakeUriPath ? "<flake>" : flake,
+		moduleUrl: isFlakeUriPath ? `${flake}/` : `<link>/`,
+	});
+
+	return options;
+};
+
+const getApps = async (flake) => {
+	const apps = new Map();
+
+	for (const app of await getFlakeApps(flake)) {
+		if (!apps.has(app.name)) {
+			apps.set(app.name, {
+				systems: [],
+			});
+		}
+
+		const existing = apps.get(app.name);
+		existing.systems.push(app.system);
+	}
+
+	return apps;
+};
+
 module.exports = {
 	getLib,
+	getPackages,
+	getOptions,
+	getApps,
 };
