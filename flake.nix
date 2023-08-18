@@ -19,7 +19,11 @@
       inherit inputs;
 
       src = ./.;
-      snowfall.root = ./nix;
+
+      snowfall = {
+        root = ./nix;
+        namespace = "snowfallorg";
+      };
 
       alias.packages = {
         default = "frost";
