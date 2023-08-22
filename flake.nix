@@ -6,8 +6,7 @@
     unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
     snowfall-lib = {
-      # url = "github:snowfallorg/lib/feat/home-manager";
-      url = "path:/home/short/work/@snowfallorg/lib";
+      url = "github:snowfallorg/lib/dev";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
